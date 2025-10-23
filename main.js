@@ -1,25 +1,30 @@
+// Import modules directly from unpkg
 import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
 import { FontLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'https://unpkg.com/three@0.165.0/examples/jsm/geometries/TextGeometry.js';
+
 let scene, camera, renderer;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-let isJumping = false, isCrouching = false;
 let velocity = new THREE.Vector3();
 let direction = new THREE.Vector3();
-let mouseSensitivity = 0.001;
-let yaw = 0, pitch = 0, maxPitch = Math.PI / 4;
+let yaw = 0, pitch = 0;
+const mouseSensitivity = 0.001;
+const maxPitch = Math.PI / 4;
 
 const standingHeight = 4;
 const crouchHeight = 2.6;
 const jumpHeight = 1.4;
 const jumpDuration = 1.6;
+let isJumping = false, isCrouching = false, jumpTime = 0;
 
 init();
 animate();
 
 function init() {
-  // Scene and sky
+  // Scene
   scene = new THREE.Scene();
+
+  // Simple sky gradient using a shader
   const skyMaterial = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     uniforms: {
@@ -62,9 +67,9 @@ function init() {
   directionalLight.position.set(0, 1, 1).normalize();
   scene.add(directionalLight);
 
-  // 3D Text
-  const fontLoader = new FontLoader();
-  fontLoader.load('nada.json', (font) => {
+  // Load font and create 3D text
+  const loader = new FontLoader();
+  loader.load('nada.json', (font) => {
     const textGeometry = new TextGeometry('Umbrella', {
       font: font,
       size: 1,
@@ -76,13 +81,13 @@ function init() {
     });
     textGeometry.center();
 
-    const textMaterial = new THREE.MeshStandardMaterial({
+    const material = new THREE.MeshStandardMaterial({
       color: 0x00ffcc,
       metalness: 0.4,
       roughness: 0.3
     });
 
-    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+    const textMesh = new THREE.Mesh(textGeometry, material);
     textMesh.position.set(0, 3, 0);
     scene.add(textMesh);
   });
@@ -95,6 +100,7 @@ function init() {
 
   window.addEventListener('resize', onWindowResize);
 
+  // Audio playback handling
   const audio = document.getElementById('guidedAudio');
   if (audio) {
     audio.play().catch(() => {
@@ -118,6 +124,7 @@ function onKeyDown(e) {
     case 'ControlLeft': isCrouching = true; break;
   }
 }
+
 function onKeyUp(e) {
   switch (e.code) {
     case 'KeyW': moveForward = false; break;
@@ -146,8 +153,8 @@ function onMouseMove(event) {
 
 function animate() {
   requestAnimationFrame(animate);
-  direction.set(0, 0, 0);
 
+  direction.set(0, 0, 0);
   if (moveForward) direction.z -= 1;
   if (moveBackward) direction.z += 1;
   if (moveLeft) direction.x -= 1;
