@@ -63,14 +63,33 @@
 
         // Create scene
         scene = new THREE.Scene();
-        const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
-        const skyMaterial = new THREE.MeshBasicMaterial({
-            map: new THREE.TextureLoader().load('background.jpg'),
-            side: THREE.BackSide // Ensures the texture is inside the sphere
+        const skyMaterial = new THREE.ShaderMaterial({
+          side: THREE.BackSide,
+          uniforms: {
+            topColor: { value: new THREE.Color(0x87ceeb) },  // top (sky)
+            bottomColor: { value: new THREE.Color(0xffffff) } // bottom (horizon)
+          },
+          vertexShader: `
+            varying vec3 vPosition;
+            void main() {
+              vPosition = position;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            varying vec3 vPosition;
+            uniform vec3 topColor;
+            uniform vec3 bottomColor;
+            void main() {
+              float h = normalize(vPosition).y * 0.5 + 0.5;
+              gl_FragColor = vec4(mix(bottomColor, topColor, h), 1.0);
+            }
+          `
         });
+        const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
         const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
         scene.add(skyDome);
-        
+
         // Create camera
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, standingHeight, 10);
@@ -88,17 +107,28 @@
         directionalLight.position.set(0, 1, 1).normalize();
         scene.add(directionalLight);
 
-        // Load the 3D bedroom model using GLTFLoader
-        const loader = new THREE.GLTFLoader();
-        loader.load('room.glb', function (gltf) {
-            const model = gltf.scene;
-            model.position.set(0, 0, 0);
-            model.rotation.y = Math.PI;
-            scene.add(model);
-        
+
+        // Load the 3D bedroom model
+        const loader = new GLTFLoader();
+        loader.load(
+            'room.glb',
+            (glb) => {
+                const model = glb.scene;
+                model.position.set(0, 0, 0);
+                model.rotation.y = Math.PI; // Rotate 180 degrees
+                scene.add(model);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+            (error) => {
+                console.error('An error occurred loading the model:', error);
+            })
             // Ensure the model's world matrix is updated after adding it to the scene
-            model.updateWorldMatrix(true, true);
-        });
+            model.updateWorldMatrix(true, true)
+        ;
+        
+
 
 
 
