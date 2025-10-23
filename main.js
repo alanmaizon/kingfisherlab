@@ -63,9 +63,9 @@ function init() {
   scene.add(directionalLight);
 
   // 3D Text
-  const fontLoader = new THREE.FontLoader();
+  const fontLoader = new FontLoader();
   fontLoader.load('nada.json', (font) => {
-    const textGeometry = new THREE.TextGeometry('Umbrella', {
+    const textGeometry = new TextGeometry('Umbrella', {
       font: font,
       size: 1,
       height: 0.2,
