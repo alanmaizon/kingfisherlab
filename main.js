@@ -1,0 +1,287 @@
+        import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
+        import { GLTFLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
+        let scene, camera, renderer;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let isJumping = false, isCrouching = false;
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let mouseSensitivity = 0.001;
+        let isDragging = false;
+        let pitch = 0;
+        let maxPitch = Math.PI / 4;
+        let jumpSpeed = 0.1;
+        let jumpHeight = 1.4;
+        let jumpTime = 1;
+        let returnToStanding = false;
+        let initialTouchX = 0;
+        let initialTouchY = 0;
+        let isTouching = false;
+        let touchSensitivity = 0.005;
+        
+        const standingHeight = 4;
+        const crouchHeight = 2.6;
+        const jumpDuration = 1.6;
+
+        let cameraQuaternion = new THREE.Quaternion();
+        let pitchQuaternion = new THREE.Quaternion();
+        let yawQuaternion = new THREE.Quaternion();
+        let yaw = 0;
+
+        // Create scene
+        scene = new THREE.Scene();
+        const skyMaterial = new THREE.ShaderMaterial({
+          side: THREE.BackSide,
+          uniforms: {
+            topColor: { value: new THREE.Color(0x87ceeb) },  // top (sky)
+            bottomColor: { value: new THREE.Color(0xffffff) } // bottom (horizon)
+          },
+          vertexShader: `
+            varying vec3 vPosition;
+            void main() {
+              vPosition = position;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            varying vec3 vPosition;
+            uniform vec3 topColor;
+            uniform vec3 bottomColor;
+            void main() {
+              float h = normalize(vPosition).y * 0.5 + 0.5;
+              gl_FragColor = vec4(mix(bottomColor, topColor, h), 1.0);
+            }
+          `
+        });
+        const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
+        const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
+        scene.add(skyDome);
+
+        // Create camera
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, standingHeight, 10);
+        camera.lookAt(0, standingHeight, 0);
+
+        // Create renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+        directionalLight.position.set(0, 1, 1).normalize();
+        scene.add(directionalLight);
+
+
+        // Load the 3D bedroom model
+        const loader = new GLTFLoader();
+        loader.load(
+            'room.glb',
+            (glb) => {
+                const model = glb.scene;
+                model.position.set(0, 0, 0);
+                model.rotation.y = Math.PI; // Rotate 180 degrees
+                scene.add(model);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+            (error) => {
+                console.error('An error occurred loading the model:', error);
+            })
+            // Ensure the model's world matrix is updated after adding it to the scene
+            model.updateWorldMatrix(true, true)
+        ;
+        
+
+
+
+
+        // Event listeners for movement and mouse controls
+        document.addEventListener('keydown', onKeyDown, false);
+        document.addEventListener('keyup', onKeyUp, false);
+        document.addEventListener('mousemove', onMouseMove, false);
+        
+        document.addEventListener('click', function() {
+            document.body.requestPointerLock();
+        }, false);
+
+        document.addEventListener('pointerlockchange', function() {
+            if (document.pointerLockElement === document.body) {
+                document.addEventListener('mousemove', onMouseMove, false);
+            } else {
+                document.removeEventListener('mousemove', onMouseMove, false);
+            }
+        }, false);
+
+        function onKeyDown(event) {
+            switch (event.code) {
+                case 'ArrowUp': 
+                case 'KeyW':
+                    moveForward = true;
+                    break;
+                case 'ArrowLeft': 
+                case 'KeyA':
+                    moveLeft = true;
+                    break;
+                case 'ArrowDown': 
+                case 'KeyS':
+                    moveBackward = true;
+                    break;
+                case 'ArrowRight': 
+                case 'KeyD':
+                    moveRight = true;
+                    break;
+                case 'Space': 
+                    if (!isJumping && !isCrouching) {
+                        isJumping = true;
+                        jumpTime = 0;
+                    }
+                    break;
+                case 'ControlLeft': 
+                case 'ControlRight':
+                    if (!isJumping && !isCrouching) {
+                        isCrouching = true;
+                    }
+                    break;
+            }
+        }
+
+        function onKeyUp(event) {
+            switch (event.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    moveForward = false;
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    moveLeft = false;
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    moveBackward = false;
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    moveRight = false;
+                    break;
+                case 'ControlLeft': 
+                case 'ControlRight':
+                    isCrouching = false;
+                    break;
+            }
+        }
+
+        // Add touch event listeners
+        document.addEventListener('touchstart', onTouchStart, false);
+        document.addEventListener('touchmove', onTouchMove, false);
+        document.addEventListener('touchend', onTouchEnd, false);
+
+        function onTouchStart(event) {
+            if (event.touches.length === 1) { // Only track single touches
+                isTouching = true;
+                initialTouchX = event.touches[0].pageX;
+                initialTouchY = event.touches[0].pageY;
+            }
+        }
+
+        function onTouchMove(event) {
+            if (isTouching) {
+                const touchX = event.touches[0].pageX;
+                const touchY = event.touches[0].pageY;
+
+                const deltaX = touchX - initialTouchX;
+                const deltaY = touchY - initialTouchY;
+
+                camera.rotation.y -= deltaX * touchSensitivity;
+                pitch -= deltaY * touchSensitivity;
+
+                pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch)); // Lock pitch to prevent too much vertical movement
+                camera.rotation.x = pitch;
+                camera.rotation.z = 0; // Lock the z-axis to prevent diagonal tilts
+
+                initialTouchX = touchX; // Update the touch starting point
+                initialTouchY = touchY;
+            }
+        }
+
+        function onTouchEnd(event) {
+            isTouching = false; // Stop tracking when touch ends
+        }
+
+        function onMouseMove(event) {
+            const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+            const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+            // Update yaw (left/right) rotation
+            yaw -= movementX * mouseSensitivity;
+            yawQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+            // Update pitch (up/down) rotation
+            pitch -= movementY * mouseSensitivity;
+            pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch)); // Limit pitch to 90 degrees each side
+            pitchQuaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), pitch);
+
+            // Combine yaw and pitch rotations
+            cameraQuaternion.copy(yawQuaternion).multiply(pitchQuaternion);
+
+            // Apply the quaternion to the camera's rotation
+            camera.quaternion.copy(cameraQuaternion);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            direction.set(0, 0, 0);
+
+            if (moveForward) direction.z -= 1;
+            if (moveBackward) direction.z += 1;
+            if (moveLeft) direction.x -= 1;
+            if (moveRight) direction.x += 1;
+
+            direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
+
+            if (direction.length() > 0) direction.normalize();
+
+            velocity.x = direction.x * 0.1;
+            velocity.z = direction.z * 0.1;
+
+            // Jump logic
+            if (isJumping) {
+                jumpTime += 0.05;
+                const jumpProgress = jumpTime / jumpDuration;
+                camera.position.y = standingHeight + Math.sin(jumpProgress * Math.PI) * jumpHeight;
+                if (jumpProgress >= 1) {
+                    isJumping = false;
+                    returnToStanding = true;
+                }
+            } else if (returnToStanding) {
+                // Smoothly return to standing height using easing (lerp)
+                camera.position.y = THREE.Math.lerp(camera.position.y, standingHeight, 0.1);
+                if (Math.abs(camera.position.y - standingHeight) < 0.01) {
+                    returnToStanding = false;
+                }
+            } else if (isCrouching) {
+                camera.position.y = THREE.Math.lerp(camera.position.y, crouchHeight, 0.1);
+            } else {
+                camera.position.y = THREE.Math.lerp(camera.position.y, standingHeight, 0.1);
+            }
+
+            if (camera.position.x + velocity.x > -10 && camera.position.x + velocity.x < 10) {
+                camera.position.x += velocity.x;
+            }
+            if (camera.position.z + velocity.z > -10 && camera.position.z + velocity.z < 10) {
+                camera.position.z += velocity.z;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', function () {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
