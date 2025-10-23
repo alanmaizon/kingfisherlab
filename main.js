@@ -1,3 +1,6 @@
+import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
+import { FontLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'https://unpkg.com/three@0.165.0/examples/jsm/geometries/TextGeometry.js';
 let scene, camera, renderer;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 let isJumping = false, isCrouching = false;
