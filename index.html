@@ -88,18 +88,20 @@
         directionalLight.position.set(0, 1, 1).normalize();
         scene.add(directionalLight);
 
-        // Load the 3D bedroom model using GLTFLoader
-        const loader = new THREE.GLTFLoader();
-        loader.load('roomi.glb', function (gltf) {
-            const model = gltf.scene;
-            model.position.set(0, 0, 0);
-            model.rotation.y = Math.PI;
-            scene.add(model);
-        
-            // Ensure the model's world matrix is updated after adding it to the scene
-            model.updateWorldMatrix(true, true);
-        });
-
+        // Create simple ground
+        const groundGeometry = new THREE.PlaneGeometry(200, 200);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 }); // greenish
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = 0;
+        scene.add(ground);
+            
+        // Add a simple cube for reference
+        const cubeGeometry = new THREE.BoxGeometry(2, 2, 2);
+        const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0x8B0000 }); // dark red
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        cube.position.set(0, 1, 0);
+        scene.add(cube);
 
 
         // Event listeners for movement and mouse controls
