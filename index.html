@@ -124,7 +124,7 @@
         // Load a GLTF model
         const loader = new THREE.GLTFLoader();
         loader.load(
-          'scene.gltf', // your model file path
+          './scene.gltf', // your model file path
           function (gltf) {
             const model = gltf.scene;
             model.position.set(0, 0, 0);  // place it on the ground
