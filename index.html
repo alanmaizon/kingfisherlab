@@ -121,13 +121,29 @@
         ground.position.y = 0;
         scene.add(ground);
 
-        // Add a simple cube for reference
-        const cubeGeometry = new THREE.BoxGeometry(2, 2, 2);
-        const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0x8B0000 }); // dark red
-        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        cube.position.set(0, 1, 0);
-        scene.add(cube);
-
+        // Load a GLTF model
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+          'scene.gltf', // your model file path
+          function (gltf) {
+            const model = gltf.scene;
+            model.position.set(0, 0, 0);  // place it on the ground
+            model.scale.set(1, 1, 1);     // adjust size if needed
+            scene.add(model);
+        
+            // optional: center the model for safety
+            model.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+          },
+          undefined,
+          function (error) {
+            console.error('Error loading GLTF model:', error);
+          }
+        );
 
         // Event listeners for movement and mouse controls
         document.addEventListener('keydown', onKeyDown, false);
