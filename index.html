@@ -121,73 +121,22 @@
         ground.position.y = 0;
         scene.add(ground);
 
-        // Clear previous cube setup if it exists
-        // Create a simple room using box walls
+// Remove the cube creation code first
+
+        // Base of the house
+        const baseGeometry = new THREE.BoxGeometry(4, 2, 4);
+        const baseMaterial = new THREE.MeshStandardMaterial({ color: 0xdeb887 }); // warm wood tone
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = 1;
+        scene.add(base);
             
-        // Floor
-        const floorGeo = new THREE.PlaneGeometry(20, 20);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x999999 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        scene.add(floor);
-            
-        // Ceiling
-        const ceilingGeo = new THREE.PlaneGeometry(20, 20);
-        const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
-        const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
-        ceiling.rotation.x = Math.PI / 2;
-        ceiling.position.y = 8;
-        scene.add(ceiling);
-            
-        // Walls
-        const wallMat = new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          side: THREE.BackSide
-        });
-        
-        const backWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat);
-        backWall.position.z = -10;
-        backWall.position.y = 4;
-        scene.add(backWall);
-        
-        const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat);
-        frontWall.position.z = 10;
-        frontWall.position.y = 4;
-        frontWall.rotation.y = Math.PI;
-        scene.add(frontWall);
-        
-        const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat);
-        leftWall.position.x = -10;
-        leftWall.position.y = 4;
-        leftWall.rotation.y = Math.PI / 2;
-        scene.add(leftWall);
-        
-        const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat);
-        rightWall.position.x = 10;
-        rightWall.position.y = 4;
-        rightWall.rotation.y = -Math.PI / 2;
-        scene.add(rightWall);
-        
-        // Fake windows with transparent glass planes
-        const glassMat = new THREE.MeshPhysicalMaterial({
-          color: 0x87CEFA,
-          transparent: true,
-          opacity: 0.3,
-          roughness: 0,
-          metalness: 0,
-          transmission: 1.0, // for a glass-like effect
-          side: THREE.DoubleSide
-        });
-        
-        // Two windows on the back wall
-        const windowGeo = new THREE.PlaneGeometry(4, 3);
-        const window1 = new THREE.Mesh(windowGeo, glassMat);
-        window1.position.set(-5, 4, -9.99); // slightly in front of wall to avoid z-fighting
-        scene.add(window1);
-        
-        const window2 = new THREE.Mesh(windowGeo, glassMat);
-        window2.position.set(5, 4, -9.99);
-        scene.add(window2);
+        // Roof
+        const roofGeometry = new THREE.ConeGeometry(3.5, 2, 4);
+        const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x8b0000 });
+        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+        roof.position.y = 3;
+        roof.rotation.y = Math.PI / 4;
+        scene.add(roof);
 
         // Event listeners for movement and mouse controls
         document.addEventListener('keydown', onKeyDown, false);
