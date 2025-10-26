@@ -168,81 +168,38 @@
         const floorLight = new THREE.PointLight(0xffffff, 0.5, 50);
         floorLight.position.set(0, 3, 0);
         scene.add(floorLight);
-
-        // Define column parameters
         
-        const spacing = 5;   // distance between columns
-        const columnGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
-        const columnMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd }); // light stone
+        const inset = 1.5; // how far columns sit inside the boundary
+        const spacing = 5;
+        const nColumns = Math.floor((2 * (halfSize - inset)) / spacing) + 1;
+        const totalLength = (nColumns - 1) * spacing;
+        const offset = -totalLength / 2;
 
-        // Column base and top
-        const baseGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16);
-        const topGeometry  = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
-
-        const inset = 2;
-
-        // X positions along the horizontal edges
-        const xPositions = [];
-        for (let x = -halfSize + inset; x <= halfSize - inset; x += spacing) {
-          xPositions.push(x);
-        }
-
-        // Z positions along the vertical edges
-        const zPositions = [];
-        for (let z = -halfSize + inset; z <= halfSize - inset; z += spacing) {
-          zPositions.push(z);
-        }
-
-        // Top edge (z = -halfSize + inset)
-        zPositions.forEach(z => {
-          const group = new THREE.Group();
-          const col = new THREE.Mesh(columnGeometry, columnMaterial);
-          col.position.y = 3;
-          const base = new THREE.Mesh(baseGeometry, columnMaterial);
-          base.position.y = 0.15;
-          const top = new THREE.Mesh(topGeometry, columnMaterial);
-          top.position.y = 6.1;
-          group.add(col, base, top);
-          group.position.set(xPositions[0], 0, z); // left
-          scene.add(group);
+        for (let i = 0; i < nColumns; i++) {
+          const x = offset + i * spacing;
         
-          const group2 = new THREE.Group();
-          const col2 = new THREE.Mesh(columnGeometry, columnMaterial);
-          col2.position.y = 3;
-          const base2 = new THREE.Mesh(baseGeometry, columnMaterial);
-          base2.position.y = 0.15;
-          const top2 = new THREE.Mesh(topGeometry, columnMaterial);
-          top2.position.y = 6.1;
-          group2.add(col2, base2, top2);
-          group2.position.set(xPositions[xPositions.length - 1], 0, z); // right
-          scene.add(group2);
-        });
-
-        // Left and right edges (x = -halfSize + inset, x = halfSize - inset)
-        xPositions.forEach(x => {
-          const group = new THREE.Group();
-          const col = new THREE.Mesh(columnGeometry, columnMaterial);
-          col.position.y = 3;
-          const base = new THREE.Mesh(baseGeometry, columnMaterial);
-          base.position.y = 0.15;
-          const top = new THREE.Mesh(topGeometry, columnMaterial);
-          top.position.y = 6.1;
-          group.add(col, base, top);
-          group.position.set(x, 0, zPositions[0]); // top
-          scene.add(group);
+          for (let j = 0; j < nColumns; j++) {
+            const z = offset + j * spacing;
         
-          const group2 = new THREE.Group();
-          const col2 = new THREE.Mesh(columnGeometry, columnMaterial);
-          col2.position.y = 3;
-          const base2 = new THREE.Mesh(baseGeometry, columnMaterial);
-          base2.position.y = 0.15;
-          const top2 = new THREE.Mesh(topGeometry, columnMaterial);
-          top2.position.y = 6.1;
-          group2.add(col2, base2, top2);
-          group2.position.set(x, 0, zPositions[zPositions.length - 1]); // bottom
-          scene.add(group2);
+            // Only place columns along the perimeter
+            if (i === 0 || i === nColumns - 1 || j === 0 || j === nColumns - 1) {
+              const group = new THREE.Group();
+            
+              const col = new THREE.Mesh(columnGeometry, columnMaterial);
+              col.position.y = 3;
+            
+              const base = new THREE.Mesh(baseGeometry, columnMaterial);
+              base.position.y = 0.15;
+            
+              const top = new THREE.Mesh(topGeometry, columnMaterial);
+              top.position.y = 6.1;
+            
+              group.add(col, base, top);
+              group.position.set(x, 0, z);
+              scene.add(group);
+            }
+          }
         }
-        );
 
         // Event listeners for movement and mouse controls
         document.addEventListener('keydown', onKeyDown, false);
