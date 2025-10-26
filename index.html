@@ -121,7 +121,30 @@
         ground.position.y = 0;
         scene.add(ground);
 
-// Remove the cube creation code first
+        // Column base and top
+        const baseGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16);
+        const topGeometry  = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
+            
+        for (let x = -halfSize; x <= halfSize; x += spacing) {
+          for (let z = -halfSize; z <= halfSize; z += spacing) {
+            if (x === -halfSize || x === halfSize || z === -halfSize || z === halfSize) {
+              const group = new THREE.Group();
+            
+              const col = new THREE.Mesh(columnGeometry, columnMaterial);
+              col.position.y = 3;
+            
+              const base = new THREE.Mesh(baseGeometry, columnMaterial);
+              base.position.y = 0.15;
+            
+              const top = new THREE.Mesh(topGeometry, columnMaterial);
+              top.position.y = 6.1;
+            
+              group.add(col, base, top);
+              group.position.set(x, 0, z);
+              scene.add(group);
+            }
+          }
+        }
 
         // Base of the house
         const baseGeometry = new THREE.BoxGeometry(4, 2, 4);
@@ -129,7 +152,7 @@
         const base = new THREE.Mesh(baseGeometry, baseMaterial);
         base.position.y = 1;
         scene.add(base);
-            
+
         // Roof
         const roofGeometry = new THREE.ConeGeometry(3.5, 2, 4);
         const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x8b0000 });
