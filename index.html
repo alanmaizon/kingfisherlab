@@ -180,21 +180,27 @@
         const topGeometry  = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
 
         const columnOffset = 1.5; // how far inward from the edge
-        for (let x = -(halfSize - columnOffset); x <= (halfSize - columnOffset); x += spacing) {
-          for (let z = -(halfSize - columnOffset); z <= (halfSize - columnOffset); z += spacing) {
-            if (x === -(halfSize - columnOffset) || x === (halfSize - columnOffset) ||
-                z === -(halfSize - columnOffset) || z === (halfSize - columnOffset)) {
+        // Calculate start and end positions explicitly
+        const startX = -halfSize + columnOffset;
+        const endX = halfSize - columnOffset;
+        const startZ = -halfSize + columnOffset;
+        const endZ = halfSize - columnOffset;
+            
+        for (let x = startX; x <= endX; x += spacing) {
+          for (let z = startZ; z <= endZ; z += spacing) {
+            // Only keep columns on the perimeter
+            if (x === startX || x === endX || z === startZ || z === endZ) {
               const group = new THREE.Group();
-                
+            
               const col = new THREE.Mesh(columnGeometry, columnMaterial);
               col.position.y = 3;
-                
+            
               const base = new THREE.Mesh(baseGeometry, columnMaterial);
               base.position.y = 0.15;
-                
+            
               const top = new THREE.Mesh(topGeometry, columnMaterial);
               top.position.y = 6.1;
-                
+            
               group.add(col, base, top);
               group.position.set(x, 0, z);
               scene.add(group);
