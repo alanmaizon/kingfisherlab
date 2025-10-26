@@ -134,25 +134,27 @@
         scene.add(floorGroup);
         
         // Add ceiling
-        // Create ceiling with an open skylight
         const ceilingThickness = 0.25;
-        const ceilingHeight = 5.8; // lowered ceiling
+        const ceilingHeight = 6.0; // aligns with column tops
         const skylightSize = 8;
-        const ceilingOverhang = 1; // makes ceiling larger than perimeter
+        const totalSize = (halfSize + 1) * 2; // slightly larger overall ceiling
+        const outerHalf = totalSize / 2;
+            
         const ceilingMaterial = new THREE.MeshStandardMaterial({
           color: 0xdddddd,
           side: THREE.DoubleSide
         });
         
+        // Ceiling made of 4 border slabs around central skylight
         const slabs = [
           // Front slab
-          { x: 0, z: -(halfSize - skylightSize / 2), w: (halfSize + ceilingOverhang) * 2, d: halfSize - skylightSize / 2 + ceilingOverhang },
+          { x: 0, z: -(outerHalf - (totalSize - skylightSize) / 4), w: totalSize, d: (totalSize - skylightSize) / 2 },
           // Back slab
-          { x: 0, z: (halfSize - skylightSize / 2), w: (halfSize + ceilingOverhang) * 2, d: halfSize - skylightSize / 2 + ceilingOverhang },
+          { x: 0, z: (outerHalf - (totalSize - skylightSize) / 4), w: totalSize, d: (totalSize - skylightSize) / 2 },
           // Left slab
-          { x: -(halfSize - skylightSize / 2), z: 0, w: halfSize - skylightSize / 2 + ceilingOverhang, d: skylightSize + ceilingOverhang },
+          { x: -(outerHalf - (totalSize - skylightSize) / 4), z: 0, w: (totalSize - skylightSize) / 2, d: skylightSize },
           // Right slab
-          { x: (halfSize - skylightSize / 2), z: 0, w: halfSize - skylightSize / 2 + ceilingOverhang, d: skylightSize + ceilingOverhang },
+          { x: (outerHalf - (totalSize - skylightSize) / 4), z: 0, w: (totalSize - skylightSize) / 2, d: skylightSize },
         ];
         
         slabs.forEach(slab => {
