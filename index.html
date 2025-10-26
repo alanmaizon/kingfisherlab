@@ -113,24 +113,47 @@
         directionalLight.position.set(0, 1, 1).normalize();
         scene.add(directionalLight);
 
-        // Create simple ground
-        const groundGeometry = new THREE.PlaneGeometry(200, 200);
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 }); // greenish
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = 0;
-        scene.add(ground);
-            
+        // Create checkered floor inside the perimeter
+        const tileSize = 2;
+        const floorGroup = new THREE.Group();
+        for (let x = -halfSize; x < halfSize; x += tileSize) {
+          for (let z = -halfSize; z < halfSize; z += tileSize) {
+            const color = (Math.floor((x + halfSize) / tileSize) + Math.floor((z + halfSize) / tileSize)) % 2 === 0
+              ? 0xffffff
+              : 0x000000;
+            const tileGeometry = new THREE.PlaneGeometry(tileSize, tileSize);
+            const tileMaterial = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+            const tile = new THREE.Mesh(tileGeometry, tileMaterial);
+            tile.rotation.x = -Math.PI / 2;
+            tile.position.set(x + tileSize / 2, 0.01, z + tileSize / 2);
+            floorGroup.add(tile);
+          }
+        }
+        scene.add(floorGroup);
+        
+        // Add ceiling
+        const ceilingGeometry = new THREE.PlaneGeometry(halfSize * 2 + spacing, halfSize * 2 + spacing);
+        const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd, side: THREE.DoubleSide });
+        const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.y = 6.3; // slightly above column tops
+        scene.add(ceiling);
+        
+        // Soft bounce light from below
+        const floorLight = new THREE.PointLight(0xffffff, 0.5, 50);
+        floorLight.position.set(0, 3, 0);
+        scene.add(floorLight);
+
         // Define column parameters
         const halfSize = 10; // half the width of the walkable area
         const spacing = 5;   // distance between columns
         const columnGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
         const columnMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd }); // light stone
-            
+
         // Column base and top
         const baseGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16);
         const topGeometry  = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
-            
+
         for (let x = -halfSize; x <= halfSize; x += spacing) {
           for (let z = -halfSize; z <= halfSize; z += spacing) {
             if (x === -halfSize || x === halfSize || z === -halfSize || z === halfSize) {
