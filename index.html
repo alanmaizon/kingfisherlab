@@ -179,28 +179,70 @@
         const baseGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16);
         const topGeometry  = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
 
-        const columnOffset = 0; // how far inward from the edge
-        for (let x = -(halfSize - columnOffset); x <= (halfSize - columnOffset); x += spacing) {
-          for (let z = -(halfSize - columnOffset); z <= (halfSize - columnOffset); z += spacing) {
-            if (x === -(halfSize - columnOffset) || x === (halfSize - columnOffset) ||
-                z === -(halfSize - columnOffset) || z === (halfSize - columnOffset)) {
-              const group = new THREE.Group();
-                
-              const col = new THREE.Mesh(columnGeometry, columnMaterial);
-              col.position.y = 3;
-                
-              const base = new THREE.Mesh(baseGeometry, columnMaterial);
-              base.position.y = 0.15;
-                
-              const top = new THREE.Mesh(topGeometry, columnMaterial);
-              top.position.y = 6.1;
-                
-              group.add(col, base, top);
-              group.position.set(x, 0, z);
-              scene.add(group);
-            }
-          }
+        const inset = 2;
+
+        // X positions along the horizontal edges
+        const xPositions = [];
+        for (let x = -halfSize + inset; x <= halfSize - inset; x += spacing) {
+          xPositions.push(x);
         }
+
+        // Z positions along the vertical edges
+        const zPositions = [];
+        for (let z = -halfSize + inset; z <= halfSize - inset; z += spacing) {
+          zPositions.push(z);
+        }
+
+        // Top edge (z = -halfSize + inset)
+        zPositions.forEach(z => {
+          const group = new THREE.Group();
+          const col = new THREE.Mesh(columnGeometry, columnMaterial);
+          col.position.y = 3;
+          const base = new THREE.Mesh(baseGeometry, columnMaterial);
+          base.position.y = 0.15;
+          const top = new THREE.Mesh(topGeometry, columnMaterial);
+          top.position.y = 6.1;
+          group.add(col, base, top);
+          group.position.set(xPositions[0], 0, z); // left
+          scene.add(group);
+        
+          const group2 = new THREE.Group();
+          const col2 = new THREE.Mesh(columnGeometry, columnMaterial);
+          col2.position.y = 3;
+          const base2 = new THREE.Mesh(baseGeometry, columnMaterial);
+          base2.position.y = 0.15;
+          const top2 = new THREE.Mesh(topGeometry, columnMaterial);
+          top2.position.y = 6.1;
+          group2.add(col2, base2, top2);
+          group2.position.set(xPositions[xPositions.length - 1], 0, z); // right
+          scene.add(group2);
+        });
+
+        // Left and right edges (x = -halfSize + inset, x = halfSize - inset)
+        xPositions.forEach(x => {
+          const group = new THREE.Group();
+          const col = new THREE.Mesh(columnGeometry, columnMaterial);
+          col.position.y = 3;
+          const base = new THREE.Mesh(baseGeometry, columnMaterial);
+          base.position.y = 0.15;
+          const top = new THREE.Mesh(topGeometry, columnMaterial);
+          top.position.y = 6.1;
+          group.add(col, base, top);
+          group.position.set(x, 0, zPositions[0]); // top
+          scene.add(group);
+        
+          const group2 = new THREE.Group();
+          const col2 = new THREE.Mesh(columnGeometry, columnMaterial);
+          col2.position.y = 3;
+          const base2 = new THREE.Mesh(baseGeometry, columnMaterial);
+          base2.position.y = 0.15;
+          const top2 = new THREE.Mesh(topGeometry, columnMaterial);
+          top2.position.y = 6.1;
+          group2.add(col2, base2, top2);
+          group2.position.set(x, 0, zPositions[zPositions.length - 1]); // bottom
+          scene.add(group2);
+        }
+        );
 
         // Event listeners for movement and mouse controls
         document.addEventListener('keydown', onKeyDown, false);
