@@ -136,7 +136,7 @@
         // Add ceiling
         const ceilingThickness = 0.25;
         const ceilingHeight = 6.25; // aligns with column tops
-        const skylightSize = 8;
+        const skylightSize = 9;
         const totalSize = (halfSize + 1) * 2; // slightly larger overall ceiling
         const outerHalf = totalSize / 2;
 
@@ -170,7 +170,7 @@
         scene.add(floorLight);
 
         // Column parameters
-        const inset = 0.5;          // inward distance from the floor edge
+        const inset = 0.2;          // inward distance from the floor edge
         const spacing = 5;          // distance between columns
         const nColumns = Math.floor((2 * (halfSize - inset)) / spacing) + 1;
         const totalLength = (nColumns - 1) * spacing;
