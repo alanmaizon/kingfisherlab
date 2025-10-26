@@ -120,11 +120,17 @@
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
         scene.add(ground);
-
+            
+        // Define column parameters
+        const halfSize = 10; // half the width of the walkable area
+        const spacing = 5;   // distance between columns
+        const columnGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
+        const columnMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd }); // light stone
+            
         // Column base and top
         const baseGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16);
         const topGeometry  = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
-
+            
         for (let x = -halfSize; x <= halfSize; x += spacing) {
           for (let z = -halfSize; z <= halfSize; z += spacing) {
             if (x === -halfSize || x === halfSize || z === -halfSize || z === halfSize) {
