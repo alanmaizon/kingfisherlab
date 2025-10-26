@@ -34,226 +34,357 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script>
-    let scene, camera, renderer;
-    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-    let isJumping = false, isCrouching = false;
-    let velocity = new THREE.Vector3();
-    let direction = new THREE.Vector3();
-    let mouseSensitivity = 0.001;
-    let pitch = 0, yaw = 0;
-    let jumpTime = 0;
-    let returnToStanding = false;
-    
-    const standingHeight = 4;
-    const crouchHeight = 2.6;
-    const jumpHeight = 1.4;
-    const jumpDuration = 1.6;
-    const maxPitch = Math.PI / 4;
-    
-    const halfSize = 10;       // defines room boundary
-    const floorInset = 0.5;
-    const ceilingInset = 0.5;
-    const floorHalf = halfSize - floorInset;
-    const ceilingHalf = halfSize - ceilingInset;
-    
-    init();
-    animate();
-    
-    function init() {
-      scene = new THREE.Scene();
-    
-      // --- SKY ---
-      const skyGeo = new THREE.SphereGeometry(500, 32, 32);
-      const skyMat = new THREE.ShaderMaterial({
-        uniforms: {
-          topColor: { value: new THREE.Color(0x87CEEB) },
-          bottomColor: { value: new THREE.Color(0xB0E0E6) },
-          offset: { value: 400 },
-          exponent: { value: 0.6 }
-        },
-        vertexShader: `
-          varying vec3 vWorldPosition;
-          void main() {
-            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-            vWorldPosition = worldPosition.xyz;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform vec3 topColor;
-          uniform vec3 bottomColor;
-          uniform float offset;
-          uniform float exponent;
-          varying vec3 vWorldPosition;
-          void main() {
-            float h = normalize(vWorldPosition + offset).y;
-            gl_FragColor = vec4(mix(bottomColor, topColor,
-              max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
-          }
-        `,
-        side: THREE.BackSide
-      });
-      const sky = new THREE.Mesh(skyGeo, skyMat);
-      scene.add(sky);
-  
-      // --- CAMERA ---
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(0, standingHeight, 10);
-  
-      // --- RENDERER ---
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.getElementById('container').appendChild(renderer.domElement);
-  
-      // --- LIGHTING ---
-      scene.add(new THREE.AmbientLight(0x404040, 2));
-      const dirLight = new THREE.DirectionalLight(0xfff2cc, 1.5);
-      dirLight.position.set(5, 15, 3);
-      scene.add(dirLight);
-  
-      // --- CHESSBOARD FLOOR ---
-      const tileSize = 2;
-      const floorGroup = new THREE.Group();
-      for (let x = -floorHalf; x < floorHalf; x += tileSize) {
-        for (let z = -floorHalf; z < floorHalf; z += tileSize) {
-          const color = (Math.floor((x + floorHalf) / tileSize) + Math.floor((z + floorHalf) / tileSize)) % 2 === 0
-            ? 0xffffff : 0x000000;
-          const tileGeo = new THREE.PlaneGeometry(tileSize, tileSize);
-          const tileMat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
-          const tile = new THREE.Mesh(tileGeo, tileMat);
-          tile.rotation.x = -Math.PI / 2;
-          tile.position.set(x + tileSize / 2, 0.01, z + tileSize / 2);
-          floorGroup.add(tile);
-        }
-      }
-      scene.add(floorGroup);
-  
-      // --- PERIMETER COLUMNS ---
-      const spacing = 5;
-      const columnGeo = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
-      const columnMat = new THREE.MeshStandardMaterial({ color: 0xdddddd });
-      const baseGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16);
-      const topGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
-  
-      for (let x = -halfSize; x <= halfSize; x += spacing) {
-        for (let z = -halfSize; z <= halfSize; z += spacing) {
-          if (x === -halfSize || x === halfSize || z === -halfSize || z === halfSize) {
-            const group = new THREE.Group();
+        let scene, camera, renderer;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let isJumping = false, isCrouching = false;
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let mouseSensitivity = 0.001;
+        let isDragging = false;
+        let pitch = 0;
+        let maxPitch = Math.PI / 4;
+        let jumpSpeed = 0.1;
+        let jumpHeight = 1.4;
+        let jumpTime = 1;
+        let returnToStanding = false;
+        let initialTouchX = 0;
+        let initialTouchY = 0;
+        let isTouching = false;
+        let touchSensitivity = 0.005;
         
-            const col = new THREE.Mesh(columnGeo, columnMat);
-            col.position.y = 3;
+        const standingHeight = 4;
+        const crouchHeight = 2.6;
+        const jumpDuration = 1.6;
+
+        let cameraQuaternion = new THREE.Quaternion();
+        let pitchQuaternion = new THREE.Quaternion();
+        let yawQuaternion = new THREE.Quaternion();
+        let yaw = 0;
+
+        // Create scene
+        scene = new THREE.Scene();
+        // Soft gradient blue sky using a large sphere
+        const skyGeo = new THREE.SphereGeometry(500, 32, 32);
+        const skyMat = new THREE.ShaderMaterial({
+          uniforms: {
+            topColor: { value: new THREE.Color(0x87CEEB) },   // lighter blue
+            bottomColor: { value: new THREE.Color(0xB0E0E6) }, // near horizon
+            offset: { value: 400 },
+            exponent: { value: 0.6 }
+          },
+          vertexShader: `
+            varying vec3 vWorldPosition;
+            void main() {
+              vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+              vWorldPosition = worldPosition.xyz;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform vec3 topColor;
+            uniform vec3 bottomColor;
+            uniform float offset;
+            uniform float exponent;
+            varying vec3 vWorldPosition;
+            void main() {
+              float h = normalize(vWorldPosition + offset).y;
+              gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
+            }
+          `,
+          side: THREE.BackSide
+        });
+        const sky = new THREE.Mesh(skyGeo, skyMat);
+        scene.add(sky);
         
-            const base = new THREE.Mesh(baseGeo, columnMat);
-            base.position.y = 0.15;
-        
-            const top = new THREE.Mesh(topGeo, columnMat);
-            top.position.y = 6.1;
-        
-            group.add(col, base, top);
-            group.position.set(x, 0, z);
-            scene.add(group);
-          }
-        }
-      }
-  
-      // --- CEILING WITH OPEN SKYLIGHT ---
-      const ceilingHeight = 6.3;
-      const ceilingThickness = 0.2;
-      const skylightSize = 8;
-      const ceilingMat = new THREE.MeshStandardMaterial({
-        color: 0xdddddd,
-        side: THREE.DoubleSide
-      });
-  
-      const slabs = [
-        { x: 0, z: -(ceilingHalf - skylightSize / 2), w: ceilingHalf * 2, d: ceilingHalf - skylightSize / 2 },
-        { x: 0, z: (ceilingHalf - skylightSize / 2), w: ceilingHalf * 2, d: ceilingHalf - skylightSize / 2 },
-        { x: -(ceilingHalf - skylightSize / 2), z: 0, w: ceilingHalf - skylightSize / 2, d: skylightSize },
-        { x: (ceilingHalf - skylightSize / 2), z: 0, w: ceilingHalf - skylightSize / 2, d: skylightSize },
-      ];
-  
-      slabs.forEach(slab => {
-        const geo = new THREE.BoxGeometry(slab.w, ceilingThickness, slab.d);
-        const mesh = new THREE.Mesh(geo, ceilingMat);
-        mesh.position.set(slab.x, ceilingHeight, slab.z);
-        scene.add(mesh);
-      });
-  
-      // --- CONTROLS ---
-      document.addEventListener('keydown', e => {
-        if (e.code === 'KeyW') moveForward = true;
-        if (e.code === 'KeyS') moveBackward = true;
-        if (e.code === 'KeyA') moveLeft = true;
-        if (e.code === 'KeyD') moveRight = true;
-        if (e.code === 'Space' && !isJumping && !isCrouching) {
-          isJumping = true; jumpTime = 0;
-        }
-        if (e.code === 'ControlLeft') isCrouching = true;
-      });
-  
-      document.addEventListener('keyup', e => {
-        if (e.code === 'KeyW') moveForward = false;
-        if (e.code === 'KeyS') moveBackward = false;
-        if (e.code === 'KeyA') moveLeft = false;
-        if (e.code === 'KeyD') moveRight = false;
-        if (e.code === 'ControlLeft') isCrouching = false;
-      });
-  
-      document.body.addEventListener('click', () => {
-        document.body.requestPointerLock();
-      });
-  
-      document.addEventListener('mousemove', e => {
-        if (document.pointerLockElement !== document.body) return;
-        yaw -= e.movementX * mouseSensitivity;
-        pitch -= e.movementY * mouseSensitivity;
-        pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch));
-        camera.rotation.set(pitch, yaw, 0);
-      });
-  
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
+        // Create camera
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, standingHeight, 10);
+        camera.lookAt(0, standingHeight, 0);
+
+        // Create renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-    }
-    
-    function animate() {
-      requestAnimationFrame(animate);
-    
-      direction.set(0, 0, 0);
-      if (moveForward) direction.z -= 1;
-      if (moveBackward) direction.z += 1;
-      if (moveLeft) direction.x -= 1;
-      if (moveRight) direction.x += 1;
-    
-      direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
-      if (direction.length() > 0) direction.normalize();
-    
-      velocity.x = direction.x * 0.1;
-      velocity.z = direction.z * 0.1;
-    
-      if (isJumping) {
-        jumpTime += 0.05;
-        const progress = jumpTime / jumpDuration;
-        camera.position.y = standingHeight + Math.sin(progress * Math.PI) * jumpHeight;
-        if (progress >= 1) { isJumping = false; returnToStanding = true; }
-      } else if (returnToStanding) {
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, standingHeight, 0.1);
-        if (Math.abs(camera.position.y - standingHeight) < 0.01) returnToStanding = false;
-      } else if (isCrouching) {
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, crouchHeight, 0.1);
-      } else {
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, standingHeight, 0.1);
-      }
-  
-      if (camera.position.x + velocity.x > -halfSize && camera.position.x + velocity.x < halfSize)
-        camera.position.x += velocity.x;
-      if (camera.position.z + velocity.z > -halfSize && camera.position.z + velocity.z < halfSize)
-        camera.position.z += velocity.z;
-  
-      renderer.render(scene, camera);
-    }
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+        directionalLight.position.set(0, 1, 1).normalize();
+        scene.add(directionalLight);
+
+        const halfSize = 10; // half the width of the walkable area
+        
+        // Create checkered floor inside the perimeter
+        const tileSize = 2;
+        const floorGroup = new THREE.Group();
+        for (let x = -halfSize; x < halfSize; x += tileSize) {
+          for (let z = -halfSize; z < halfSize; z += tileSize) {
+            const color = (Math.floor((x + halfSize) / tileSize) + Math.floor((z + halfSize) / tileSize)) % 2 === 0
+              ? 0xffffff
+              : 0x000000;
+            const tileGeometry = new THREE.PlaneGeometry(tileSize, tileSize);
+            const tileMaterial = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+            const tile = new THREE.Mesh(tileGeometry, tileMaterial);
+            tile.rotation.x = -Math.PI / 2;
+            tile.position.set(x + tileSize / 2, 0.01, z + tileSize / 2);
+            floorGroup.add(tile);
+          }
+        }
+        scene.add(floorGroup);
+        
+        // Add ceiling
+        // Create ceiling with an open skylight
+        const ceilingThickness = 0.25;
+        const ceilingHeight = 5.8; // lowered ceiling
+        const skylightSize = 8;
+        const ceilingOverhang = 1; // makes ceiling larger than perimeter
+        const ceilingMaterial = new THREE.MeshStandardMaterial({
+          color: 0xdddddd,
+          side: THREE.DoubleSide
+        });
+        
+        const slabs = [
+          // Front slab
+          { x: 0, z: -(halfSize - skylightSize / 2), w: (halfSize + ceilingOverhang) * 2, d: halfSize - skylightSize / 2 + ceilingOverhang },
+          // Back slab
+          { x: 0, z: (halfSize - skylightSize / 2), w: (halfSize + ceilingOverhang) * 2, d: halfSize - skylightSize / 2 + ceilingOverhang },
+          // Left slab
+          { x: -(halfSize - skylightSize / 2), z: 0, w: halfSize - skylightSize / 2 + ceilingOverhang, d: skylightSize + ceilingOverhang },
+          // Right slab
+          { x: (halfSize - skylightSize / 2), z: 0, w: halfSize - skylightSize / 2 + ceilingOverhang, d: skylightSize + ceilingOverhang },
+        ];
+        
+        slabs.forEach(slab => {
+          const geometry = new THREE.BoxGeometry(slab.w, ceilingThickness, slab.d);
+          const mesh = new THREE.Mesh(geometry, ceilingMaterial);
+          mesh.position.set(slab.x, ceilingHeight, slab.z);
+          scene.add(mesh);
+        });
+
+        // Soft bounce light from below
+        const floorLight = new THREE.PointLight(0xffffff, 0.5, 50);
+        floorLight.position.set(0, 3, 0);
+        scene.add(floorLight);
+
+        // Define column parameters
+        
+        const spacing = 5;   // distance between columns
+        const columnGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
+        const columnMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd }); // light stone
+
+        // Column base and top
+        const baseGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16);
+        const topGeometry  = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
+
+        for (let x = -halfSize; x <= halfSize; x += spacing) {
+          for (let z = -halfSize; z <= halfSize; z += spacing) {
+            if (x === -halfSize || x === halfSize || z === -halfSize || z === halfSize) {
+              const group = new THREE.Group();
+            
+              const col = new THREE.Mesh(columnGeometry, columnMaterial);
+              col.position.y = 3;
+            
+              const base = new THREE.Mesh(baseGeometry, columnMaterial);
+              base.position.y = 0.15;
+            
+              const top = new THREE.Mesh(topGeometry, columnMaterial);
+              top.position.y = 6.1;
+            
+              group.add(col, base, top);
+              group.position.set(x, 0, z);
+              scene.add(group);
+            }
+          }
+        }
+
+        // Event listeners for movement and mouse controls
+        document.addEventListener('keydown', onKeyDown, false);
+        document.addEventListener('keyup', onKeyUp, false);
+        document.addEventListener('mousemove', onMouseMove, false);
+        
+        document.addEventListener('click', function() {
+            document.body.requestPointerLock();
+        }, false);
+
+        document.addEventListener('pointerlockchange', function() {
+            if (document.pointerLockElement === document.body) {
+                document.addEventListener('mousemove', onMouseMove, false);
+            } else {
+                document.removeEventListener('mousemove', onMouseMove, false);
+            }
+        }, false);
+
+        function onKeyDown(event) {
+            switch (event.code) {
+                case 'ArrowUp': 
+                case 'KeyW':
+                    moveForward = true;
+                    break;
+                case 'ArrowLeft': 
+                case 'KeyA':
+                    moveLeft = true;
+                    break;
+                case 'ArrowDown': 
+                case 'KeyS':
+                    moveBackward = true;
+                    break;
+                case 'ArrowRight': 
+                case 'KeyD':
+                    moveRight = true;
+                    break;
+                case 'Space': 
+                    if (!isJumping && !isCrouching) {
+                        isJumping = true;
+                        jumpTime = 0;
+                    }
+                    break;
+                case 'ControlLeft': 
+                case 'ControlRight':
+                    if (!isJumping && !isCrouching) {
+                        isCrouching = true;
+                    }
+                    break;
+            }
+        }
+
+        function onKeyUp(event) {
+            switch (event.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    moveForward = false;
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    moveLeft = false;
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    moveBackward = false;
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    moveRight = false;
+                    break;
+                case 'ControlLeft': 
+                case 'ControlRight':
+                    isCrouching = false;
+                    break;
+            }
+        }
+
+        // Add touch event listeners
+        document.addEventListener('touchstart', onTouchStart, false);
+        document.addEventListener('touchmove', onTouchMove, false);
+        document.addEventListener('touchend', onTouchEnd, false);
+
+        function onTouchStart(event) {
+            if (event.touches.length === 1) { // Only track single touches
+                isTouching = true;
+                initialTouchX = event.touches[0].pageX;
+                initialTouchY = event.touches[0].pageY;
+            }
+        }
+
+        function onTouchMove(event) {
+            if (isTouching) {
+                const touchX = event.touches[0].pageX;
+                const touchY = event.touches[0].pageY;
+
+                const deltaX = touchX - initialTouchX;
+                const deltaY = touchY - initialTouchY;
+
+                camera.rotation.y -= deltaX * touchSensitivity;
+                pitch -= deltaY * touchSensitivity;
+
+                pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch)); // Lock pitch to prevent too much vertical movement
+                camera.rotation.x = pitch;
+                camera.rotation.z = 0; // Lock the z-axis to prevent diagonal tilts
+
+                initialTouchX = touchX; // Update the touch starting point
+                initialTouchY = touchY;
+            }
+        }
+
+        function onTouchEnd(event) {
+            isTouching = false; // Stop tracking when touch ends
+        }
+
+        function onMouseMove(event) {
+            const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+            const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+            // Update yaw (left/right) rotation
+            yaw -= movementX * mouseSensitivity;
+            yawQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+            // Update pitch (up/down) rotation
+            pitch -= movementY * mouseSensitivity;
+            pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch)); // Limit pitch to 90 degrees each side
+            pitchQuaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), pitch);
+
+            // Combine yaw and pitch rotations
+            cameraQuaternion.copy(yawQuaternion).multiply(pitchQuaternion);
+
+            // Apply the quaternion to the camera's rotation
+            camera.quaternion.copy(cameraQuaternion);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            direction.set(0, 0, 0);
+
+            if (moveForward) direction.z -= 1;
+            if (moveBackward) direction.z += 1;
+            if (moveLeft) direction.x -= 1;
+            if (moveRight) direction.x += 1;
+
+            direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
+
+            if (direction.length() > 0) direction.normalize();
+
+            velocity.x = direction.x * 0.1;
+            velocity.z = direction.z * 0.1;
+
+            // Jump logic
+            if (isJumping) {
+                jumpTime += 0.05;
+                const jumpProgress = jumpTime / jumpDuration;
+                camera.position.y = standingHeight + Math.sin(jumpProgress * Math.PI) * jumpHeight;
+                if (jumpProgress >= 1) {
+                    isJumping = false;
+                    returnToStanding = true;
+                }
+            } else if (returnToStanding) {
+                // Smoothly return to standing height using easing (lerp)
+                camera.position.y = THREE.Math.lerp(camera.position.y, standingHeight, 0.1);
+                if (Math.abs(camera.position.y - standingHeight) < 0.01) {
+                    returnToStanding = false;
+                }
+            } else if (isCrouching) {
+                camera.position.y = THREE.Math.lerp(camera.position.y, crouchHeight, 0.1);
+            } else {
+                camera.position.y = THREE.Math.lerp(camera.position.y, standingHeight, 0.1);
+            }
+
+            if (camera.position.x + velocity.x > -10 && camera.position.x + velocity.x < 10) {
+                camera.position.x += velocity.x;
+            }
+            if (camera.position.z + velocity.z > -10 && camera.position.z + velocity.z < 10) {
+                camera.position.z += velocity.z;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', function () {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
     <script>
         window.onload = () => {
