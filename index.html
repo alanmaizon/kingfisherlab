@@ -113,6 +113,8 @@
         directionalLight.position.set(0, 1, 1).normalize();
         scene.add(directionalLight);
 
+        const halfSize = 10; // half the width of the walkable area
+        
         // Create checkered floor inside the perimeter
         const tileSize = 2;
         const floorGroup = new THREE.Group();
@@ -132,20 +134,40 @@
         scene.add(floorGroup);
         
         // Add ceiling
-        const ceilingGeometry = new THREE.PlaneGeometry(halfSize * 2 + spacing, halfSize * 2 + spacing);
-        const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd, side: THREE.DoubleSide });
-        const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-        ceiling.rotation.x = Math.PI / 2;
-        ceiling.position.y = 6.3; // slightly above column tops
-        scene.add(ceiling);
-        
+        // Create ceiling with an open skylight
+        const ceilingThickness = 0.2;
+        const ceilingHeight = 6.3;
+        const skylightSize = 8; // size of the opening
+        const ceilingMaterial = new THREE.MeshStandardMaterial({
+          color: 0xdddddd,
+          side: THREE.DoubleSide
+        });
+
+        const slabs = [
+          // Front slab
+          { x: 0, z: -(halfSize - skylightSize / 2), w: halfSize * 2, d: halfSize - skylightSize / 2 },
+          // Back slab
+          { x: 0, z: (halfSize - skylightSize / 2), w: halfSize * 2, d: halfSize - skylightSize / 2 },
+          // Left slab
+          { x: -(halfSize - skylightSize / 2), z: 0, w: halfSize - skylightSize / 2, d: skylightSize },
+          // Right slab
+          { x: (halfSize - skylightSize / 2), z: 0, w: halfSize - skylightSize / 2, d: skylightSize },
+        ];
+
+        slabs.forEach(slab => {
+          const geometry = new THREE.BoxGeometry(slab.w, ceilingThickness, slab.d);
+          const mesh = new THREE.Mesh(geometry, ceilingMaterial);
+          mesh.position.set(slab.x, ceilingHeight, slab.z);
+          scene.add(mesh);
+        });
+
         // Soft bounce light from below
         const floorLight = new THREE.PointLight(0xffffff, 0.5, 50);
         floorLight.position.set(0, 3, 0);
         scene.add(floorLight);
 
         // Define column parameters
-        const halfSize = 10; // half the width of the walkable area
+        
         const spacing = 5;   // distance between columns
         const columnGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 16);
         const columnMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd }); // light stone
