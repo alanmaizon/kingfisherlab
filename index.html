@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kingfisher Lab</title>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div id="viewport"></div>
+      <section class="hud hud--intro">
+        <p class="hud__eyebrow">Flight Prototype</p>
+        <h1>Kingfisher Lab</h1>
+        <p>
+          A bird-flight playground built around the kingfisher model. Start grounded in
+          idle, use <code>W</code> or <code>Space</code> to take off, <code>A</code>/<code>D</code>
+          to bank, <code>S</code> near the ground to land, and <code>Shift</code> to dive.
+        </p>
+      </section>
+      <section class="hud hud--stats">
+        <div>
+          <span>Mode</span>
+          <strong id="flight-state">Loading Bird</strong>
+        </div>
+      </section>
+    </div>
+  </body>
+  </html>

@@ -1,0 +1,129 @@
+:root {
+  color-scheme: light;
+  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(247, 227, 167, 0.9), transparent 28%),
+    linear-gradient(180deg, #f2d49a 0%, #d9e6c4 38%, #5d7e62 100%);
+  color: #243225;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.24), transparent 36%),
+    linear-gradient(180deg, #edd19b 0%, #d9e5c0 42%, #58745c 100%);
+}
+
+#viewport,
+#viewport canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hud {
+  position: fixed;
+  z-index: 2;
+  background: rgba(245, 244, 231, 0.74);
+  border: 1px solid rgba(78, 97, 67, 0.18);
+  box-shadow: 0 18px 36px rgba(44, 57, 43, 0.14);
+  backdrop-filter: blur(14px);
+}
+
+.hud code {
+  font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
+  font-size: 0.9em;
+}
+
+.hud--intro {
+  top: 24px;
+  left: 24px;
+  max-width: 420px;
+  padding: 18px 22px 20px;
+  border-radius: 24px;
+}
+
+.hud--intro h1 {
+  margin: 0 0 10px;
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-size: clamp(2rem, 3.2vw, 3.2rem);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+}
+
+.hud--intro p {
+  margin: 0;
+  line-height: 1.55;
+  font-size: 1.02rem;
+}
+
+.hud__eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #547160;
+}
+
+.hud--stats {
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 999px;
+}
+
+.hud--stats div {
+  min-width: 122px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(234, 241, 222, 0.88);
+}
+
+.hud--stats span {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #55715b;
+}
+
+.hud--stats strong {
+  font-size: 1.25rem;
+}
+
+@media (max-width: 820px) {
+  .hud--intro {
+    right: 18px;
+    left: 18px;
+    top: 18px;
+    max-width: none;
+  }
+
+  .hud--stats {
+    right: 18px;
+    left: 18px;
+    bottom: 18px;
+    flex-wrap: wrap;
+    border-radius: 28px;
+  }
+
+  .hud--stats div {
+    flex: 1 1 120px;
+    min-width: 0;
+  }
+}
