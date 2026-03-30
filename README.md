@@ -40,6 +40,8 @@ npm run preview
 
 - **Author:** [Georgeous](https://sketchfab.com/intice184)
 - **Source:** [grass](https://sketchfab.com/3d-models/grass-674d42354f6348a7a85fc06a7f004db5) on Sketchfab
-- **License:** [CC Attribution 4.0 International (CC BY 4.0)](http://creativecommons.org/licenses/by/4.0/)
+- **License:** Free Standard
 
-> "grass" by [Georgeous](https://sketchfab.com/intice184) is licensed under [Creative Commons Attribution 4.0](http://creativecommons.org/licenses/by/4.0/).
+
+> "grass" by [Georgeous](https://sketchfab.com/intice184) is Free Standard license 
+
