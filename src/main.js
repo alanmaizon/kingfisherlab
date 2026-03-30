@@ -23,6 +23,13 @@ const GRASS_BASE_TEXTURE_URL = new URL('../grass/textures/T_Grass_Base_D.png', i
 const GRASS_NORMAL_TEXTURE_URL = new URL('../grass/textures/T_Grass_Base_N.png', import.meta.url).href;
 const REEDS_BASE_TEXTURE_URL = new URL('../grass/textures/T_Grass_Reeds_D.png', import.meta.url).href;
 const REEDS_NORMAL_TEXTURE_URL = new URL('../grass/textures/T_Grass_Reeds_N.png', import.meta.url).href;
+const FBX_TEXTURE_REDIRECTS = {
+  'body_Base_color_alpha.png': KINGFISHER_TEXTURE_URL,
+  'T_Grass_Base_D.png': GRASS_BASE_TEXTURE_URL,
+  'T_Grass_Base_N.png': GRASS_NORMAL_TEXTURE_URL,
+  'T_Grass_Reeds_D.png': REEDS_BASE_TEXTURE_URL,
+  'T_Grass_Reeds_N.png': REEDS_NORMAL_TEXTURE_URL,
+};
 const GRASS_PLANT_LIBRARY = [
   { url: new URL('../grass/source/plants/SM_Grass01.fbx', import.meta.url).href, profile: 'grass', count: 48, size: [0.8, 1.35] },
   { url: new URL('../grass/source/plants/SM_Grass02.fbx', import.meta.url).href, profile: 'grass', count: 44, size: [0.8, 1.25] },
@@ -255,6 +262,16 @@ function randomFromSeed(seed) {
   return value - Math.floor(value);
 }
 
+function createFbxLoadingManager() {
+  const manager = new THREE.LoadingManager();
+  manager.setURLModifier((url) => {
+    const normalizedUrl = url.replace(/\\/g, '/');
+    const filename = normalizedUrl.slice(normalizedUrl.lastIndexOf('/') + 1);
+    return FBX_TEXTURE_REDIRECTS[filename] ?? url;
+  });
+  return manager;
+}
+
 function createFoliageMaterial({ colorMap, normalMap, color = 0xffffff }) {
   colorMap.colorSpace = THREE.SRGBColorSpace;
   colorMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -337,7 +354,8 @@ function createPlantScatterPosition(seed, { keepLow = false } = {}) {
 }
 
 async function loadGrassPlants(worldGroup) {
-  const loader = new FBXLoader();
+  const manager = createFbxLoadingManager();
+  const loader = new FBXLoader(manager);
   const textureLoader = new THREE.TextureLoader();
 
   try {
@@ -743,7 +761,8 @@ function updateBirdAnimationPlayback(flightRig, delta) {
 }
 
 async function loadKingfisherModel(flightRig) {
-  const loader = new FBXLoader();
+  const manager = createFbxLoadingManager();
+  const loader = new FBXLoader(manager);
   const textureLoader = new THREE.TextureLoader();
 
   try {
